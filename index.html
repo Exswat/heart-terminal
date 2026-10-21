@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta property="og:title" content="Терминал HEART">
+<meta property="og:description" content="Торговый терминал в браузере, сделанный вместе с Claude Code: графики, бэктест, боты на Python, журнал сделок.">
+<meta property="og:image" content="https://exswat.github.io/heart-terminal/shots/charts.jpg">
+<meta property="og:url" content="https://exswat.github.io/heart-terminal/">
+<title>Терминал HEART</title>
+<meta name="description" content="HEART — торговый терминал в браузере, сделанный вместе с Claude Code.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a ticker tape over the page, then the app's own idea of a left rail of sections beside one reading column of screens. */
+:root {
+  color-scheme: dark;
+  --bg: #0a0d14;
+  --panel: #10151f;
+  --raise: #161d2a;
+  --line: #1f2a3a;
+  --fg: #e7ecf3;
+  --muted: #8b97aa;
+  --accent: #5b8cff;
+  --up: #38c99a;
+  --down: #f06a6a;
+  --amber: #f2b84b;
+  --shot-bg: #0b0f16;
+  --shadow: 0 30px 80px -40px rgba(0, 0, 0, .9);
+  --display: "Unbounded", "Segoe UI", system-ui, sans-serif;
+  --body: "Golos Text", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+    --bg: #eef1f6; --panel: #ffffff; --raise: #f5f7fb; --line: #d6dde8; --fg: #0d1320; --muted: #566275;
+    --accent: #2c5fe0; --up: #0d8a64; --down: #c63f3f; --amber: #9a6200; --shadow: 0 30px 70px -45px rgba(20, 35, 70, .55);
+  }
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #eef1f6; --panel: #ffffff; --raise: #f5f7fb; --line: #d6dde8; --fg: #0d1320; --muted: #566275;
+  --accent: #2c5fe0; --up: #0d8a64; --down: #c63f3f; --amber: #9a6200; --shadow: 0 30px 70px -45px rgba(20, 35, 70, .55);
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 400 16px/1.6 var(--body); -webkit-font-smoothing: antialiased; }
+a { color: var(--accent); }
+h1, h2, h3 { text-wrap: balance; margin: 0; }
+p { margin: 0; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+
+/* Ticker tape */
+.tape { border-bottom: 1px solid var(--line); background: var(--panel); overflow: hidden; font: 500 12.5px/1 var(--mono); letter-spacing: .02em; }
+.tape-track { display: flex; width: max-content; animation: tape 48s linear infinite; }
+.tape:hover .tape-track { animation-play-state: paused; }
+.tape ul { display: flex; list-style: none; margin: 0; padding: 0; }
+.tape li { display: flex; gap: 10px; align-items: baseline; padding: 11px 22px; border-right: 1px solid var(--line); white-space: nowrap; }
+.tape b { color: var(--muted); font-weight: 400; text-transform: uppercase; letter-spacing: .08em; font-size: 11px; }
+.tape span { color: var(--fg); font-variant-numeric: tabular-nums; }
+.tape i { font-style: normal; color: var(--up); }
+@keyframes tape { to { transform: translateX(-50%); } }
+@media (prefers-reduced-motion: reduce) { .tape-track { animation: none; } html { scroll-behavior: auto; } }
+
+/* Page frame */
+.wrap { max-width: 1240px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.page { display: grid; grid-template-columns: 1fr; gap: 48px; padding-block: 56px 80px; }
+@media (min-width: 1180px) { .page { grid-template-columns: 168px minmax(0, 1fr); gap: 56px; } }
+
+.rail { display: none; }
+@media (min-width: 1180px) {
+  .rail { display: block; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); align-self: start; }
+  .rail p { font: 600 11px/1 var(--mono); letter-spacing: .22em; color: var(--muted); padding: 0 12px 14px; }
+  .rail ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+  .rail a { display: block; padding: 8px 12px; border-radius: 8px; color: var(--muted); text-decoration: none; font-size: 14px; }
+  .rail a:hover { color: var(--fg); background: var(--raise); }
+  .rail a[aria-current="true"] { color: var(--fg); background: var(--raise); box-shadow: inset 2px 0 0 var(--accent); }
+  .rail hr { border: 0; border-top: 1px solid var(--line); margin: 10px 12px; }
+}
+main { min-width: 0; display: grid; gap: 112px; }
+
+/* Hero */
+.hero { display: grid; gap: 28px; }
+.eyebrow { font: 500 12px/1.4 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.eyebrow em { font-style: normal; color: var(--accent); }
+.name { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 22px; }
+.name h1 { font: 700 clamp(56px, 11vw, 132px)/.86 var(--display); letter-spacing: .14em; margin-right: -.14em; }
+.name .ver { font: 500 13px/1.5 var(--mono); color: var(--muted); padding-bottom: .5em; display: grid; }
+.name .ver b { color: var(--up); font-weight: 600; }
+.lead { font-size: clamp(19px, 2.2vw, 23px); line-height: 1.45; max-width: 34em; }
+.role { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px 18px; max-width: 46em; padding: 18px 20px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+.role dt { font: 600 11px/1.9 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.role dd { margin: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; margin: 0; padding: 0; }
+.chips li { font: 500 12.5px/1 var(--mono); padding: 8px 11px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); }
+.chips li b { color: var(--fg); font-weight: 600; }
+
+/* Screens */
+figure { margin: 0; display: grid; gap: 12px; min-width: 0; }
+.shot { display: block; width: 100%; padding: 0; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--shot-bg); box-shadow: var(--shadow); cursor: zoom-in; }
+.shot img { display: block; width: 100%; height: auto; max-width: 100%; }
+figcaption { font-size: 13.5px; color: var(--muted); max-width: 62em; }
+figcaption b { color: var(--fg); font-weight: 500; }
+.pair { display: grid; gap: 20px; }
+@media (min-width: 900px) { .pair { grid-template-columns: 1fr 1fr; } }
+
+/* Feature sections */
+.feature { display: grid; gap: 28px; scroll-margin-top: 24px; }
+.feature header { display: grid; gap: 14px; }
+.tag { font: 500 12px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
+h2 { font: 500 clamp(26px, 3.4vw, 38px)/1.15 var(--display); letter-spacing: -.01em; }
+.feature header p { max-width: 62ch; color: var(--fg); }
+.facts { display: flex; flex-wrap: wrap; gap: 8px 22px; list-style: none; margin: 0; padding: 0; font: 400 13.5px/1.5 var(--mono); color: var(--muted); }
+.facts li::before { content: "✓ "; color: var(--up); }
+
+/* Approach */
+.approach { display: grid; gap: 40px; scroll-margin-top: 24px; }
+.approach > header { display: grid; gap: 14px; }
+.approach > header p { max-width: 58ch; font-size: 18px; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; counter-reset: step; }
+@media (min-width: 760px) { .steps { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1100px) { .steps { grid-template-columns: repeat(4, 1fr); } }
+.steps li { background: var(--panel); padding: 22px 20px 24px; display: grid; gap: 10px; align-content: start; counter-increment: step; }
+.steps li::before { content: "0" counter(step); font: 600 12px/1 var(--mono); color: var(--accent); letter-spacing: .1em; }
+.steps h3 { font: 600 17px/1.3 var(--body); }
+.steps p { font-size: 14.5px; color: var(--muted); }
+
+.cases-title { font: 500 20px/1.3 var(--display); }
+.cases { display: grid; gap: 16px; }
+@media (min-width: 820px) { .cases { grid-template-columns: 1fr 1fr; } }
+.case { display: grid; gap: 12px; align-content: start; padding: 22px 22px 24px; border: 1px solid var(--line); border-radius: 12px; }
+.case header { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.case h4 { margin: 0; font: 600 17px/1.3 var(--body); }
+.verdict { font: 600 11px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; padding: 6px 8px; border-radius: 6px; border: 1px solid currentColor; white-space: nowrap; }
+.verdict.down { color: var(--down); }
+.verdict.swap { color: var(--amber); }
+.verdict.up { color: var(--up); }
+.verdict.lock { color: var(--accent); }
+.case p { font-size: 14.5px; color: var(--muted); }
+.numbers { display: flex; flex-wrap: wrap; gap: 10px 28px; }
+.numbers div { display: grid; gap: 2px; }
+.numbers strong { font: 600 26px/1.1 var(--mono); color: var(--up); font-variant-numeric: tabular-nums; }
+.numbers span { font-size: 12.5px; color: var(--muted); }
+.numbers s { color: var(--muted); text-decoration-thickness: 1px; }
+
+/* Stack */
+.stack { display: grid; gap: 28px; scroll-margin-top: 24px; }
+.stack dl { margin: 0; display: grid; grid-template-columns: 1fr; border-top: 1px solid var(--line); }
+.stack dl > div { display: grid; grid-template-columns: 1fr; gap: 4px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+@media (min-width: 640px) { .stack dl > div { grid-template-columns: 180px minmax(0, 1fr); gap: 20px; } }
+.stack dt { font: 500 12px/1.9 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.stack dd { margin: 0; }
+
+.next { display: grid; gap: 12px; padding: 24px; border: 1px dashed var(--line); border-radius: 12px; }
+.next p { color: var(--muted); max-width: 62ch; }
+
+footer { border-top: 1px solid var(--line); padding-block: 28px 40px; color: var(--muted); font-size: 13.5px; }
+footer .wrap { display: grid; gap: 6px; }
+
+/* Full-size screen */
+dialog.zoom { padding: 0; border: 0; background: transparent; max-width: 100vw; max-height: 100vh; width: 100vw; height: 100vh; }
+dialog.zoom::backdrop { background: rgba(5, 8, 14, .9); }
+dialog.zoom button { all: unset; display: grid; place-items: center; width: 100%; height: 100%; cursor: zoom-out; padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); box-sizing: border-box; }
+dialog.zoom img { max-width: 100%; max-height: 100%; border-radius: 8px; }
+</style>
+</head>
+<body>
+<div class="tape" aria-label="Проект в цифрах">
+  <div class="tape-track">
+    <ul>
+      <li><b>TypeScript</b><span>49 тыс. строк</span></li>
+      <li><b>Go</b><span>16 тыс. строк</span></li>
+      <li><b>Сквозные тесты</b><span>157</span><i>✓</i></li>
+      <li><b>Модульные тесты</b><span>360+</span><i>✓</i></li>
+      <li><b>Тесты сервера</b><span>110+</span><i>✓</i></li>
+      <li><b>Разделов</b><span>8</span></li>
+      <li><b>Архив котировок</b><span>≈ 7 ГБ</span></li>
+      <li><b>Запуск</b><span>366 мс</span></li>
+    </ul>
+    <ul aria-hidden="true">
+      <li><b>TypeScript</b><span>49 тыс. строк</span></li>
+      <li><b>Go</b><span>16 тыс. строк</span></li>
+      <li><b>Сквозные тесты</b><span>157</span><i>✓</i></li>
+      <li><b>Модульные тесты</b><span>360+</span><i>✓</i></li>
+      <li><b>Тесты сервера</b><span>110+</span><i>✓</i></li>
+      <li><b>Разделов</b><span>8</span></li>
+      <li><b>Архив котировок</b><span>≈ 7 ГБ</span></li>
+      <li><b>Запуск</b><span>366 мс</span></li>
+    </ul>
+  </div>
+</div>
+
+<div class="wrap page">
+  <nav class="rail" aria-label="Разделы страницы">
+    <p>HEART</p>
+    <ol>
+      <li><a href="#top">Графики</a></li>
+      <li><a href="#strategies">Стратегии</a></li>
+      <li><a href="#builder">Конструктор</a></li>
+      <li><a href="#code">Редактор кода</a></li>
+      <li><a href="#journal">Журнал</a></li>
+      <li><a href="#simulator">Симулятор</a></li>
+      <li><a href="#calendar">Календарь</a></li>
+      <li><a href="#modules">Модули</a></li>
+    </ol>
+    <hr>
+    <ol>
+      <li><a href="#approach">Работа с ИИ</a></li>
+      <li><a href="#stack">Стек</a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <section class="hero" id="top">
+      <p class="eyebrow">Пет-проект · сделан вместе с <em>Claude Code</em></p>
+      <div class="name">
+        <h1>HEART</h1>
+        <p class="ver"><span>версия <b>0.4</b></span><span>октябрь 2026</span></p>
+      </div>
+      <p class="lead">Торговый терминал, который работает в браузере. Графики с индикаторами, бэктест стратегий, боты на Python, журнал сделок, симулятор и экономический календарь в одном окне.</p>
+      <dl class="role">
+        <dt>Моя роль</dt>
+        <dd>Ставлю задачи, проверяю результат и решаю, что войдёт в проект.</dd>
+        <dt>Нейросеть</dt>
+        <dd>Claude Code пишет код и тесты к нему.</dd>
+        <dt>Проверка</dt>
+        <dd>Каждое изменение проходит автотесты и мою проверку в браузере.</dd>
+      </dl>
+      <ul class="chips" aria-label="Коротко">
+        <li>Данные: <b>Binance, cTrader, FXStreet</b></li>
+        <li>Сервер: <b>Go</b></li>
+        <li>Интерфейс: <b>TypeScript, React</b></li>
+        <li>Код: <b>закрытый репозиторий</b></li>
+      </ul>
+      <figure>
+        <button class="shot" type="button" aria-label="Открыть скриншот графиков целиком"><img src="shots/charts.jpg" width="2880" height="1800" alt="Окно графиков HEART: свечной график BTC/USDT на часовом таймфрейме с подписанными торговыми сессиями, объёмом и списком инструментов справа"></button>
+        <figcaption><b>Графики.</b> BTC/USDT, 1 час, живые котировки Binance. На графике торговые сессии (Сидней, Токио, Лондон, Нью-Йорк), структура рынка и объём. Справа список инструментов с переключателем Binance / cTrader.</figcaption>
+      </figure>
+    </section>
+
+    <section class="feature" id="strategies">
+      <header>
+        <p class="tag">Стратегии</p>
+        <h2>Бэктест, который не подыгрывает</h2>
+        <p>Стратегию можно прогнать по истории за несколько секунд: доходность, просадка, профит-фактор, издержки и сравнение с «купить и держать». Чтобы не подгонять параметры под прошлое, последние 30% истории откладываются. Стратегия проверяется на данных, по которым параметры не подбирались. Прогоны можно сравнивать между собой.</p>
+        <ul class="facts">
+          <li>отложенный период для проверки</li>
+          <li>комиссия и проскальзывание в расчёте</li>
+          <li>сравнение двух прогонов</li>
+        </ul>
+      </header>
+      <figure>
+        <button class="shot" type="button" aria-label="Открыть скриншот бэктеста целиком"><img src="shots/strategies.jpg" width="2880" height="1800" alt="Раздел «Стратегии»: итоги прогона стратегии «Пересечение EMA», таблица проверки на отложенном периоде и кривая капитала"></button>
+        <figcaption><b>Пересечение EMA на BTC/USDT, 1 минута.</b> Стратегия убыточна, и терминал так и пишет: на подборе прибыли нет, проверять нечего.</figcaption>
+      </figure>
+    </section>
+
+    <section class="feature" id="builder">
+      <header>
+        <p class="tag">Конструктор ботов</p>
+        <h2>Бот без строчки кода</h2>
+        <p>Правила входа и выхода собираются из индикаторов и условий. Справа конструктор пересказывает бота обычными словами и предупреждает о слабых местах, например когда не задан тейк-профит. Сохранённый бот сразу отправляется в бэктест.</p>
+      </header>
+      <figure>
+        <button class="shot" type="button" aria-label="Открыть скриншот конструктора целиком"><img src="shots/builder.jpg" width="2880" height="1800" alt="Конструктор бота: условия входа и выхода на пересечении EMA, настройки риска и описание правил бота обычным текстом"></button>
+        <figcaption><b>Конструктор бота.</b> Шаблон «Пересечение EMA»: условия, стоп-лосс, объём сделки и пересказ правил справа.</figcaption>
+      </figure>
+    </section>
+
+    <section class="feature" id="code">
+      <header>
+        <p class="tag">Редактор кода</p>
+        <h2>Свои индикаторы на TypeScript, боты на Python</h2>
+        <p>Когда конструктора мало, есть редактор. Индикатор пишется на TypeScript и сразу появляется на графике. Бот пишется на Python и запускается прямо в браузере через Pyodide, устанавливать ничего не нужно. Пользовательский код работает в отдельном потоке и не тормозит интерфейс.</p>
+      </header>
+      <div class="pair">
+        <figure>
+          <button class="shot" type="button" aria-label="Открыть скриншот редактора бота целиком"><img src="shots/editor.jpg" width="2880" height="1800" alt="Редактор: заготовка бота на Python с параметрами и методом on_bar"></button>
+          <figcaption><b>Бот на Python.</b> Заготовка с параметрами и обработкой каждой свечи.</figcaption>
+        </figure>
+        <figure>
+          <button class="shot" type="button" aria-label="Открыть скриншот редактора индикатора целиком"><img src="shots/indicator.jpg" width="2880" height="1800" alt="Редактор: заготовка индикатора на TypeScript с выбором шаблона"></button>
+          <figcaption><b>Индикатор на TypeScript.</b> Три заготовки: пустой скелет, линия и фигуры.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="feature" id="journal">
+      <header>
+        <p class="tag">Журнал</p>
+        <h2>Журнал сделок с разбором каждой</h2>
+        <p>Сделки попадают в журнал вручную, из cTrader или с фьючерсного счёта Binance (только чтение). Результат каждой сделки считается в R, то есть в долях риска: от входа, стопа и процента риска на счёт. Календарь месяца подсвечивает прибыльные и убыточные дни, по сетапам считается винрейт. В разборе сделки видны новости, которые выходили в это время.</p>
+      </header>
+      <figure>
+        <button class="shot" type="button" aria-label="Открыть скриншот журнала целиком"><img src="shots/journal.jpg" width="2880" height="1800" alt="Журнал сделок: итоги месяца, кривая капитала, список сделок по дням и разбор сделки EUR/USD"></button>
+        <figcaption><b>Данные на этом скриншоте — пример.</b> Счёт «Пример» и сделки созданы для витрины, настоящий счёт сюда не попадает.</figcaption>
+      </figure>
+    </section>
+
+    <section class="feature" id="simulator">
+      <header>
+        <p class="tag">Симулятор</p>
+        <h2>Тренировка на истории, свеча за свечой</h2>
+        <p>Выбираете инструмент, дату и период, и рынок открывается по одной свече. Будущее скрыто. Сделки идут на виртуальный счёт с комиссией и проскальзыванием, поэтому сетапы можно отрабатывать без риска для денег.</p>
+      </header>
+      <figure>
+        <button class="shot" type="button" aria-label="Открыть скриншот симулятора целиком"><img src="shots/simulator.jpg" width="2880" height="1490" alt="Симулятор: график BTC/USDT за март 2025 года со скрытым будущим, виртуальный счёт и кнопки покупки и продажи"></button>
+        <figcaption><b>Симулятор.</b> BTC/USDT, март 2025 года, открыта 121 свеча из 400. Заштрихованная зона справа — будущее, которого пока не видно.</figcaption>
+      </figure>
+    </section>
+
+    <section class="feature" id="calendar">
+      <header>
+        <p class="tag">Календарь</p>
+        <h2>Экономический календарь с обратным отсчётом</h2>
+        <p>События недели с фильтром по валютам и важности: факт, прогноз и предыдущее значение. Для ближайшего события идёт обратный отсчёт и показаны сценарии, что жёсткий или мягкий тон значит для валюты и для золота. Данные приходят через собственный сервер на Go.</p>
+      </header>
+      <figure>
+        <button class="shot" type="button" aria-label="Открыть скриншот календаря целиком"><img src="shots/calendar.jpg" width="2880" height="1800" alt="Экономический календарь на неделю 19–25 октября: список событий по времени и карточка выступления главы ЕЦБ с обратным отсчётом"></button>
+        <figcaption><b>Настоящие события 21 октября 2026 года.</b> Источник FXStreet.</figcaption>
+      </figure>
+    </section>
+
+    <section class="feature" id="modules">
+      <header>
+        <p class="tag">Модули</p>
+        <h2>Каждый раздел можно выключить</h2>
+        <p>Терминал собран из независимых разделов. Выключенный раздел пропадает из меню, и его код даже не загружается, а данные сохраняются до повторного включения. Границы между разделами проверяет скрипт перед каждым коммитом: один раздел не может напрямую зависеть от другого.</p>
+      </header>
+      <figure>
+        <button class="shot" type="button" aria-label="Открыть скриншот модулей целиком"><img src="shots/modules.jpg" width="2880" height="1800" alt="Раздел «Модули»: таблица разделов приложения с переключателями включения"></button>
+        <figcaption><b>Модули.</b> Семь разделов с переключателями, ниже места для пользовательских модулей и источников данных.</figcaption>
+      </figure>
+    </section>
+
+    <section class="approach" id="approach">
+      <header>
+        <p class="tag">Работа с нейросетью</p>
+        <h2>Как я работаю с ИИ</h2>
+        <p>Нейросеть пишет быстро, но может уверенно ошибаться. Поэтому результат принимается только после проверки.</p>
+      </header>
+      <ol class="steps">
+        <li><h3>Задача</h3><p>Формулирую, что должно получиться и как это проверить. Например: «запуск не медленнее, чем до изменений».</p></li>
+        <li><h3>Код и тесты</h3><p>Claude Code пишет код и тесты к нему: сквозные в браузере (Playwright), модульные (Vitest) и серверные (Go).</p></li>
+        <li><h3>Проверка</h3><p>Перед каждым коммитом сами запускаются проверка типов, тесты и контроль границ между модулями. Потом смотрю результат в браузере.</p></li>
+        <li><h3>Решение</h3><p>Оставляю, прошу переделать или убираю совсем, если идея не подтвердилась.</p></li>
+      </ol>
+
+      <h3 class="cases-title">Где результат не приняли на веру</h3>
+      <div class="cases">
+        <article class="case">
+          <header><h4>Модели сессий</h4><span class="verdict down">Удалено</span></header>
+          <p>Торговые модели собраны по методичке и прогнаны через бэктест. Преимущества на истории они не показали, поэтому вкладка и движок удалены целиком.</p>
+        </article>
+        <article class="case">
+          <header><h4>Источник календаря</h4><span class="verdict swap">Заменено</span></header>
+          <p>Investing начал ограничивать запросы. Календарь переведён на FXStreet через собственный сервер, а запросы к источнику не отправляются пачками.</p>
+        </article>
+        <article class="case">
+          <header><h4>Скорость после перестройки</h4><span class="verdict up">Измерено</span></header>
+          <p>После разбивки терминала на модули замерили запуск и переключение разделов на собранной версии.</p>
+          <div class="numbers">
+            <div><strong>366 мс</strong><span>запуск, было <s>388 мс</s></span></div>
+            <div><strong>5–11 мс</strong><span>первое открытие раздела, было <s>310 мс</s></span></div>
+          </div>
+        </article>
+        <article class="case">
+          <header><h4>Ключи и секреты</h4><span class="verdict lock">Защищено</span></header>
+          <p>Ключи Binance хранятся в зашифрованном виде средствами Windows (DPAPI). Секреты не попадают в адреса запросов и в тексты ошибок, а доступ к счёту Binance только на чтение.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="stack" id="stack">
+      <header>
+        <p class="tag">Стек</p>
+        <h2>Из чего сделано</h2>
+      </header>
+      <dl>
+        <div><dt>Интерфейс</dt><dd>TypeScript, React 19, Vite, Zustand</dd></div>
+        <div><dt>Графики</dt><dd>Собственный движок отрисовки на WebGPU, индикаторы считаются в отдельном потоке</dd></div>
+        <div><dt>Сервер</dt><dd>Go: история котировок (архив около 7 ГБ), связь с cTrader и календарём</dd></div>
+        <div><dt>Боты</dt><dd>Python в браузере через Pyodide, движок бэктеста на TypeScript</dd></div>
+        <div><dt>Тесты</dt><dd>Playwright, Vitest, go test, проверки перед каждым коммитом</dd></div>
+        <div><dt>Данные</dt><dd>Binance, cTrader, FXStreet</dd></div>
+        <div><dt>Разработка</dt><dd>Claude Code, Git</dd></div>
+      </dl>
+      <div class="next">
+        <p class="tag">Дальше</p>
+        <p>Магазин индикаторов и ботов, лента идей сообщества и публикация своих модулей. Разделы уже есть в меню, наполнение в работе.</p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<footer>
+  <div class="wrap">
+    <p>Скриншоты сняты с работающего терминала 21 октября 2026 года. Котировки и события настоящие, сделки в журнале — пример.</p>
+    <p>Исходный код в закрытом репозитории, могу показать его на созвоне.</p>
+  </div>
+</footer>
+
+<dialog class="zoom" id="zoom" aria-label="Скриншот целиком">
+  <button type="button" aria-label="Закрыть"><img alt=""></button>
+</dialog>
+
+<script>
+  const zoom = document.getElementById('zoom');
+  const big = zoom.querySelector('img');
+  document.querySelectorAll('.shot').forEach(shot =>
+    shot.addEventListener('click', () => {
+      const img = shot.querySelector('img');
+      big.src = img.currentSrc || img.src;
+      big.alt = img.alt;
+      zoom.showModal();
+    }),
+  );
+  zoom.querySelector('button').addEventListener('click', () => zoom.close());
+
+  // The rail marks the section being read.
+  const links = new Map([...document.querySelectorAll('.rail a')].map(a => [a.getAttribute('href').slice(1), a]));
+  if ('IntersectionObserver' in window) {
+    const seen = new IntersectionObserver(
+      entries => {
+        for (const e of entries)
+          if (e.isIntersecting) {
+            links.forEach(a => a.removeAttribute('aria-current'));
+            links.get(e.target.id)?.setAttribute('aria-current', 'true');
+          }
+      },
+      { rootMargin: '-35% 0px -60% 0px' },
+    );
+    links.forEach((_, id) => {
+      const section = document.getElementById(id);
+      if (section) seen.observe(section);
+    });
+  }
+</script>
+</body>
+</html>
