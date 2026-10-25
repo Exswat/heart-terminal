@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta property="og:title" content="Терминал HEART">
-<meta property="og:description" content="Торговый терминал в браузере, сделанный вместе с Claude Code: графики, бэктест, боты на Python, журнал сделок.">
+<meta property="og:description" content="Торговый терминал в браузере: графики, бэктест, боты на Python, журнал сделок.">
 <meta property="og:image" content="https://exswat.github.io/heart-terminal/shots/charts.jpg">
 <meta property="og:url" content="https://exswat.github.io/heart-terminal/">
 <title>Терминал HEART</title>
-<meta name="description" content="HEART — торговый терминал в браузере, сделанный вместе с Claude Code.">
+<meta name="description" content="HEART — торговый терминал в браузере.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
@@ -208,14 +208,14 @@ dialog.zoom img { max-width: 100%; max-height: 100%; border-radius: 8px; }
     </ol>
     <hr>
     <ol>
-      <li><a href="#approach">Работа с ИИ</a></li>
+      <li><a href="#approach">Подход</a></li>
       <li><a href="#stack">Стек</a></li>
     </ol>
   </nav>
 
   <main>
     <section class="hero" id="top">
-      <p class="eyebrow">Пет-проект · сделан вместе с <em>Claude Code</em></p>
+      <p class="eyebrow">Пет-проект</p>
       <div class="name">
         <h1>HEART</h1>
         <p class="ver"><span>версия <b>0.4</b></span><span>октябрь 2026</span></p>
@@ -224,8 +224,6 @@ dialog.zoom img { max-width: 100%; max-height: 100%; border-radius: 8px; }
       <dl class="role">
         <dt>Моя роль</dt>
         <dd>Ставлю задачи, проверяю результат и решаю, что войдёт в проект.</dd>
-        <dt>Нейросеть</dt>
-        <dd>Claude Code пишет код и тесты к нему.</dd>
         <dt>Проверка</dt>
         <dd>Каждое изменение проходит автотесты и мою проверку в браузере.</dd>
       </dl>
@@ -338,15 +336,15 @@ dialog.zoom img { max-width: 100%; max-height: 100%; border-radius: 8px; }
 
     <section class="approach" id="approach">
       <header>
-        <p class="tag">Работа с нейросетью</p>
-        <h2>Как я работаю с ИИ</h2>
-        <p>Нейросеть пишет быстро, но может уверенно ошибаться. Поэтому результат принимается только после проверки.</p>
+        <p class="tag">Подход</p>
+        <h2>Как я работаю</h2>
+        <p>Результат принимается только после проверки.</p>
       </header>
       <ol class="steps">
         <li><h3>Задача</h3><p>Формулирую, что должно получиться и как это проверить. Например: «запуск не медленнее, чем до изменений».</p></li>
-        <li><h3>Код и тесты</h3><p>Claude Code пишет код и тесты к нему: сквозные в браузере (Playwright), модульные (Vitest) и серверные (Go).</p></li>
+        <li><h3>Код и тесты</h3><p>Каждое изменение идёт с тестами: сквозные в браузере (Playwright), модульные (Vitest) и серверные (Go).</p></li>
         <li><h3>Проверка</h3><p>Перед каждым коммитом сами запускаются проверка типов, тесты и контроль границ между модулями. Потом смотрю результат в браузере.</p></li>
-        <li><h3>Решение</h3><p>Оставляю, прошу переделать или убираю совсем, если идея не подтвердилась.</p></li>
+        <li><h3>Решение</h3><p>Оставляю, переделываю или убираю совсем, если идея не подтвердилась.</p></li>
       </ol>
 
       <h3 class="cases-title">Где результат не приняли на веру</h3>
@@ -386,7 +384,7 @@ dialog.zoom img { max-width: 100%; max-height: 100%; border-radius: 8px; }
         <div><dt>Боты</dt><dd>Python в браузере через Pyodide, движок бэктеста на TypeScript</dd></div>
         <div><dt>Тесты</dt><dd>Playwright, Vitest, go test, проверки перед каждым коммитом</dd></div>
         <div><dt>Данные</dt><dd>Binance, cTrader, FXStreet</dd></div>
-        <div><dt>Разработка</dt><dd>Claude Code, Git</dd></div>
+        <div><dt>Разработка</dt><dd>Git</dd></div>
       </dl>
       <div class="next">
         <p class="tag">Дальше</p>
