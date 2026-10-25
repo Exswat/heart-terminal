@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
-/* Layout: a ticker tape over the page, then the app's own idea of a left rail of sections beside one reading column of screens. */
+/* Layout: the app's own idea of a left rail of sections beside one reading column of screens. */
 :root {
   color-scheme: dark;
   --bg: #0a0d14;
@@ -53,17 +53,7 @@ h1, h2, h3 { text-wrap: balance; margin: 0; }
 p { margin: 0; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
 
-/* Ticker tape */
-.tape { border-bottom: 1px solid var(--line); background: var(--panel); overflow: hidden; font: 500 12.5px/1 var(--mono); letter-spacing: .02em; }
-.tape-track { display: flex; width: max-content; animation: tape 48s linear infinite; }
-.tape:hover .tape-track { animation-play-state: paused; }
-.tape ul { display: flex; list-style: none; margin: 0; padding: 0; }
-.tape li { display: flex; gap: 10px; align-items: baseline; padding: 11px 22px; border-right: 1px solid var(--line); white-space: nowrap; }
-.tape b { color: var(--muted); font-weight: 400; text-transform: uppercase; letter-spacing: .08em; font-size: 11px; }
-.tape span { color: var(--fg); font-variant-numeric: tabular-nums; }
-.tape i { font-style: normal; color: var(--up); }
-@keyframes tape { to { transform: translateX(-50%); } }
-@media (prefers-reduced-motion: reduce) { .tape-track { animation: none; } html { scroll-behavior: auto; } }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 
 /* Page frame */
 .wrap { max-width: 1240px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
@@ -168,28 +158,6 @@ dialog.zoom img { max-width: 100%; max-height: 100%; border-radius: 8px; }
 </style>
 </head>
 <body>
-<div class="tape" aria-label="Проект в цифрах">
-  <div class="tape-track">
-    <ul>
-      <li><b>TypeScript</b><span>55 тыс. строк</span></li>
-      <li><b>Go</b><span>18 тыс. строк</span></li>
-      <li><b>Сквозные тесты</b><span>227</span><i>✓</i></li>
-      <li><b>Модульные тесты</b><span>410+</span><i>✓</i></li>
-      <li><b>Тесты сервера</b><span>130</span><i>✓</i></li>
-      <li><b>Разделов</b><span>8</span></li>
-      <li><b>Запуск</b><span>366 мс</span></li>
-    </ul>
-    <ul aria-hidden="true">
-      <li><b>TypeScript</b><span>55 тыс. строк</span></li>
-      <li><b>Go</b><span>18 тыс. строк</span></li>
-      <li><b>Сквозные тесты</b><span>227</span><i>✓</i></li>
-      <li><b>Модульные тесты</b><span>410+</span><i>✓</i></li>
-      <li><b>Тесты сервера</b><span>130</span><i>✓</i></li>
-      <li><b>Разделов</b><span>8</span></li>
-      <li><b>Запуск</b><span>366 мс</span></li>
-    </ul>
-  </div>
-</div>
 
 <div class="wrap page">
   <nav class="rail" aria-label="Разделы страницы">
